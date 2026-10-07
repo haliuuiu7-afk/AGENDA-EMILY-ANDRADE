@@ -47,8 +47,6 @@ button{cursor:pointer}
 .btn.danger{background:transparent;color:var(--bad);border:1px solid #5a2c25}
 .login-card .btn{width:100%;padding:13px}
 .err{color:var(--bad);font-size:.85rem;min-height:1.3em;margin-top:10px}
-.back{display:inline-block;margin-top:6px;color:var(--mut);font-size:.8rem;text-decoration:none}
-.back:hover{color:var(--gold2)}
 
 /* APP */
 .top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 22px;background:rgba(7,6,5,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
@@ -187,7 +185,6 @@ textarea.inp{width:100%;resize:vertical;min-height:150px;line-height:1.5}
     <label class="field">Senha<input type="password" name="password" required autocomplete="current-password"></label>
     <button class="btn" type="submit">Entrar</button>
     <div class="err" id="loginErr" role="alert"></div>
-    <a class="back" href="index.html">← Voltar ao site</a>
   </form>
 </section>
 
@@ -208,7 +205,6 @@ textarea.inp{width:100%;resize:vertical;min-height:150px;line-height:1.5}
         <option value="atend">Data do atendimento</option>
       </select>
       <button class="btn ghost sm" id="exportBtn">⬇ CSV</button>
-      <a class="btn ghost sm" href="index.html" target="_blank" rel="noopener" style="text-decoration:none">Ver site</a>
       <button class="btn ghost sm" id="logout">Sair</button>
     </div>
   </header>
@@ -339,18 +335,16 @@ textarea.inp{width:100%;resize:vertical;min-height:150px;line-height:1.5}
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="config.js"></script>
 <script>
 /* ============ CONFIG ============ */
-/* config.js = configuração única do site (index.html) e deste painel: banco, WhatsApp e agenda.
-   Fica na mesma pasta. A chave anon é pública por natureza; quem protege os dados é o RLS
-   criado pelo supabase-setup.sql. NUNCA coloque senha em nenhum destes arquivos. */
-const CFG = window.SEA_CONFIG || {};
-const SUPABASE_URL = CFG.SUPABASE_URL || "";
-const SUPABASE_ANON_KEY = CFG.SUPABASE_ANON_KEY || "";
-const BRAND = "Studio Emilly Andrade";
-/* horário, duração e dias de atendimento (0=domingo … 6=sábado): os mesmos do site, lidos do config.js */
-const AGENDA = Object.assign({abre:"09:00",fecha:"18:30",duracao:70,dias:[1,2,3,4,5,6]}, CFG.AGENDA || {});
+/* Cole aqui os dois valores do projeto Supabase do studio (Settings → API):
+   Project URL e chave "anon public". São os mesmos do site. A chave anon é pública por natureza;
+   quem protege os dados é o RLS criado pelo supabase-setup.sql. NUNCA coloque senha neste arquivo. */
+const SUPABASE_URL = "https://srzrtrleeqfbdhpiegzv.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyenJ0cmxlZXFmYmRocGllZ3p2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzNzkyNjYsImV4cCI6MjEwNjk1NTI2Nn0.YyZIIq0bpyoboqzjnjqTlqcbRn4gSEsnbFocGvJfr2c";
+const BRAND = "srzrtrleeqfbdhpiegzv";
+/* >>> Mantenha igual ao site (AGENDA no studio-emilly-andrade.html): horário, duração e dias (0=domingo … 6=sábado) <<< */
+const AGENDA = {abre:"09:00",fecha:"18:30",duracao:70,dias:[1,2,3,4,5,6]};
 /* Modelos que o site oferece (catálogo + provador): aparecem na tabela de preços esperando o valor */
 const SITE_MODELS = ["Clássico (Fio a Fio)","Volume Brasileiro","Volume Russo","Híbrido","Mega Volume","Efeito Gatinho","Modelo 4D","Modelo 5D","Fox Eyes"];
 const WA_ICON = '<svg viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.71.45 3.38 1.3 4.85L2 22l5.38-1.41a9.9 9.9 0 0 0 4.66 1.18c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.8 14.14c-.24.68-1.4 1.3-1.93 1.35-.5.05-.97.23-3.27-.68-2.77-1.09-4.52-3.94-4.66-4.12-.13-.18-1.11-1.48-1.11-2.82 0-1.34.7-2 .95-2.28.25-.27.54-.34.72-.34h.52c.17 0 .39-.06.61.47.24.56.8 1.94.87 2.08.07.14.12.3.02.48-.09.18-.14.3-.27.46l-.41.48c-.14.14-.28.29-.12.56.16.27.71 1.17 1.52 1.9 1.05.93 1.93 1.22 2.2 1.36.27.14.43.12.59-.07.16-.18.68-.8.86-1.07.18-.27.36-.23.61-.14.25.09 1.59.75 1.86.89.27.14.45.2.52.32.07.11.07.66-.17 1.33z"/></svg>';
@@ -415,7 +409,7 @@ $("loginForm").addEventListener("submit",async e=>{
 $("logout").onclick=async()=>{await sb.auth.signOut();location.reload()};
 
 async function boot(){
-  if(!CONFIGURED){$("loginErr").textContent=window.SEA_CONFIG?"Painel ainda sem banco: preencha SUPABASE_URL e SUPABASE_ANON_KEY no config.js.":"Não achei o config.js: ele precisa estar na mesma pasta do admin.html.";$("loginForm").querySelector("button").disabled=true;return}
+  if(!CONFIGURED){$("loginErr").textContent="Painel ainda sem banco: preencha SUPABASE_URL e SUPABASE_ANON_KEY no começo do script do admin.html.";$("loginForm").querySelector("button").disabled=true;return}
   const{data:{session}}=await sb.auth.getSession();
   if(!session){$("login").hidden=false;$("app").hidden=true;return}
   const{data:ok,error}=await sb.rpc("is_admin");
