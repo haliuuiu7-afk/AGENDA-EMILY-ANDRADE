@@ -266,8 +266,6 @@ h2>span>span{background:linear-gradient(180deg,#fffaf1 14%,#d3ccc1 50%,#9a9186 5
 }
 footer{text-align:center;padding:8px 16px 48px;color:var(--muted);font-size:13px;letter-spacing:.14em;text-transform:uppercase}
 footer a{color:var(--gold-hi);text-underline-offset:4px}
-footer .adm{display:inline-block;margin-top:22px;padding:6px 4px;font-size:11px;letter-spacing:.2em;color:var(--muted);opacity:.65;text-decoration:none;transition:opacity .2s,color .2s}
-footer .adm:hover,footer .adm:focus-visible{opacity:1;color:var(--gold-hi)}
 .orn{display:flex;align-items:center;justify-content:center;gap:14px;max-width:560px;margin:0 auto 30px;color:var(--gold)}
 .orn::before,.orn::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(227,184,119,0),var(--gold))}
 .orn::after{transform:scaleX(-1)}
@@ -489,10 +487,9 @@ footer .adm:hover,footer .adm:focus-visible{opacity:1;color:var(--gold-hi)}
   </div>
 </section>
 
-<footer id="contato"><div class="orn rv nf" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 0c.9 7.2 4.8 11.1 12 12-7.2.9-11.1 4.8-12 12-.9-7.2-4.8-11.1-12-12C7.200 11.100 11.100 7.200 12 0Z"/></svg></div><span class="rv nf" style="display:block">Studio Emilly Andrade · Agende pelo <a id="wa-foot" href="https://wa.me/" target="_blank" rel="noopener">WhatsApp</a></span><a class="adm" href="admin.html">Área restrita</a></footer>
+<footer id="contato"><div class="orn rv nf" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 0c.9 7.2 4.8 11.1 12 12-7.2.9-11.1 4.8-12 12-.9-7.2-4.8-11.1-12-12C7.200 11.100 11.100 7.200 12 0Z"/></svg></div><span class="rv nf" style="display:block">Studio Emilly Andrade · Agende pelo <a href="https://wa.me/" target="_blank" rel="noopener">WhatsApp</a></span></footer>
 </main>
 
-<script src="config.js"></script>
 <script>
 
 const tr=document.getElementById('track'),hr=document.getElementById('hero');
@@ -555,11 +552,8 @@ document.addEventListener('visibilitychange',heroWake);
 addEventListener('resize',size);
 size();heroWake();
 })();
-/* config.js = configuração única do site e do painel (banco, WhatsApp, agenda). Fica na mesma pasta. */
-const SEA=window.SEA_CONFIG||{};
 /* WhatsApp do studio com DDI+DDD, só números (ex.: 5579999999999) */
-const WA=String(SEA.WHATSAPP||'').replace(/\D/g,'');
-if(WA)document.getElementById('wa-foot').href='https://wa.me/'+WA;
+const WA='';
 /* Para trocar uma foto: substitua a regra .ph0 … .ph5 no bloco <style id="fotos-modelos"> */
 const models=[
 {n:'Clássico (Fio a Fio)',d:'Um fio sintético em cada cílio natural. Efeito natural e delicado.',k:'Natural',tec:'1 fio por cílio natural',para:'Primeira extensão e dia a dia',vol:1,c:22,f:1,len:26,sp:70,w:1.6,cat:0},
@@ -734,11 +728,11 @@ play();
 
 /* ---------- Agendamento ---------- */
 /* Regras da agenda. dias: 0=domingo … 6=sábado */
-const AGENDA=Object.assign({abre:'09:00',fecha:'18:30',duracao:70,dias:[1,2,3,4,5,6],janelaDias:60},SEA.AGENDA||{});
+const AGENDA={abre:'09:00',fecha:'18:30',duracao:70,dias:[1,2,3,4,5,6],janelaDias:60};
 
-/* Banco do site (Supabase): vem do config.js, o mesmo arquivo que o admin.html lê.
-   Sem ele (ou com os campos vazios) a agenda funciona só neste navegador (modo demonstração) e nada chega ao painel. */
-const SUPABASE_URL=SEA.SUPABASE_URL||'',SUPABASE_ANON_KEY=SEA.SUPABASE_ANON_KEY||'';
+/* Banco do site (Supabase): Project URL e chave "anon public" (Settings → API), os mesmos do admin.html.
+   Com os dois vazios a agenda funciona só neste navegador (modo demonstração) e nada chega ao painel. */
+const SUPABASE_URL='',SUPABASE_ANON_KEY='';
 
 /* Onde os agendamentos ficam guardados: no Supabase quando configurado; senão, só neste navegador.
    list() devolve {'2026-10-10':['09:00','10:10'], …}; '*' na lista = dia inteiro bloqueado pelo painel. */
