@@ -730,10 +730,29 @@ play();
 /* Regras da agenda. dias: 0=domingo … 6=sábado */
 const AGENDA={abre:'09:00',fecha:'18:30',duracao:70,dias:[1,2,3,4,5,6],janelaDias:60};
 
-/* Onde os agendamentos ficam guardados.
-   Hoje: só neste navegador (localStorage). Para a disponibilidade valer para todas as clientes,
-   troque list() e save() por chamadas ao banco (ex.: Supabase), mantendo o mesmo formato. */
+/* Banco do site (Supabase): Project URL e chave "anon public" (Settings → API), os mesmos do admin.html.
+   Com os dois vazios a agenda funciona só neste navegador (modo demonstração) e nada chega ao painel. */
+const SUPABASE_URL='',SUPABASE_ANON_KEY='';
+
+/* Onde os agendamentos ficam guardados: no Supabase quando configurado; senão, só neste navegador.
+   list() devolve {'2026-10-10':['09:00','10:10'], …}; '*' na lista = dia inteiro bloqueado pelo painel. */
 const agendaStore=(()=>{
+  if(SUPABASE_URL&&SUPABASE_ANON_KEY){
+    const rpc=async(fn,args)=>{
+      const r=await fetch(SUPABASE_URL.replace(/\/+$/,'')+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,Authorization:'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify(args)});
+      const j=await r.json().catch(()=>null);
+      if(!r.ok)throw new Error(j&&j.message||'erro');
+      return j;
+    };
+    return{
+      async list(de,ate){const o={};(await rpc('get_agenda',{p_from:de,p_to:ate})).forEach(x=>{(o[x.d]=o[x.d]||[]).push(x.t)});return o},
+      async save(b){
+        try{await rpc('create_booking',{p_name:b.nome,p_phone:b.whatsapp,p_style:b.modelo||'',p_date:b.data,p_time:b.hora})}
+        catch(e){throw new Error(/slot_taken|slot_blocked/.test(e.message)?'ocupado':e.message)}
+        return b;
+      }
+    };
+  }
   const KEY='sea_agendamentos';let mem=[];
   const read=()=>{try{const v=JSON.parse(localStorage.getItem(KEY)||'null');return Array.isArray(v)?v:mem}catch(e){return mem}};
   const write=l=>{mem=l;try{localStorage.setItem(KEY,JSON.stringify(l))}catch(e){}};
@@ -768,7 +787,7 @@ let view=new Date(today.getFullYear(),today.getMonth(),1),sel=null,slot=null,tak
 const open=d=>d>=today&&d<=maxDay&&AGENDA.dias.includes(d.getDay());
 function slotsOf(d){
   const k=key(d),t=taken[k]||[],now=new Date(),isToday=k===key(now),nowMin=now.getHours()*60+now.getMinutes();
-  return SLOTS.map(h=>({h,fim:fmt(toMin(h)+AGENDA.duracao),livre:!t.includes(h)&&!(isToday&&toMin(h)<=nowMin)}));
+  return SLOTS.map(h=>({h,fim:fmt(toMin(h)+AGENDA.duracao),livre:!t.includes('*')&&!t.includes(h)&&!(isToday&&toMin(h)<=nowMin)}));
 }
 const longDate=d=>d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
 
@@ -902,7 +921,7 @@ if('IntersectionObserver' in window){
 /* ---------- Provador de cílios ao vivo ---------- */
 (function(){
 /* Nome que assina a mensagem do WhatsApp e o arquivo da foto. O WhatsApp é o mesmo WA lá de cima. */
-const BRAND='Emily Andrade';
+const BRAND='Studio Emilly Andrade';
 const MP='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
 /* Os 5 modelos do provador. "ag" = nome do mesmo modelo no catálogo, usado ao agendar. */
 const STYLES={
