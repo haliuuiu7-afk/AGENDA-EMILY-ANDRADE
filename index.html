@@ -157,6 +157,9 @@ h2>span>span{background:linear-gradient(180deg,#fffaf1 14%,#d3ccc1 50%,#9a9186 5
 .cc-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cc-neck{display:flex;height:6px;margin:-1px 0;padding:0 12px;color:var(--chip);position:relative;z-index:1}
 .cc-neck svg{display:block;fill:currentColor;overflow:visible}
+.cc-val{white-space:pre;font-variant-numeric:tabular-nums}
+.cc-go{white-space:nowrap}
+@media(max-width:350px){.cc-gx{display:none}}
 .cc-go{display:inline-flex;align-items:center;justify-content:center;align-self:flex-start;min-height:44px;padding:0 22px;border-radius:12px;background:var(--btn);color:var(--on-gold);font-weight:500;text-decoration:none;font-size:14px;letter-spacing:.04em;box-shadow:0 6px 22px rgba(227,184,119,.2)}
 .cc-go:hover{background:var(--btn-h)}
 .cc-go:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
@@ -181,7 +184,7 @@ h2>span>span{background:linear-gradient(180deg,#fffaf1 14%,#d3ccc1 50%,#9a9186 5
 .cc[data-tier="mobile"] .cc-txt h3{font-size:28px}
 .cc[data-tier="mobile"] .cc-lead{font-size:17px;margin-top:6px;line-height:1.28}
 .cc[data-tier="mobile"] .cc-spec div{padding:8px 0;font-size:13px}
-.cc[data-tier="mobile"] .cc-go{align-self:stretch}
+.cc[data-tier="mobile"] .cc-go{align-self:stretch;padding:0 10px;letter-spacing:.01em;font-size:13.5px}
 .cc-tabs{display:flex;align-items:center;gap:6px;margin-top:14px}
 .cc-tab{display:flex;align-items:center;height:32px;padding:0;border:0;background:none;cursor:pointer;outline:none}
 .cc-tab span{display:block;width:8px;height:8px;border-radius:3px;overflow:hidden;background:rgba(243,236,226,.24);transition:width .3s ease-out,background .2s}
@@ -221,6 +224,7 @@ h2>span>span{background:linear-gradient(180deg,#fffaf1 14%,#d3ccc1 50%,#9a9186 5
 .bk-side{min-width:0;min-height:100%;display:flex;flex-direction:column;justify-content:center;outline:none}
 .bk-side h3{margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-weight:600;font-size:clamp(26px,3vw,34px);line-height:1.1}
 .bk-side h3::first-letter{text-transform:uppercase}
+.bk-aviso{margin:16px 0 0;max-width:520px;padding:12px 16px;border:1px solid rgba(227,184,119,.42);border-radius:12px;background:rgba(227,184,119,.08);color:var(--gold-hi);font-size:14.5px;line-height:1.5;white-space:pre-line}
 .bk-hint{margin:8px 0 0;color:var(--muted);font-weight:300;font-size:15px;line-height:1.55;max-width:46ch}
 .bk-key{display:inline-block;width:14px;height:14px;border-radius:4px;background:var(--tint);box-shadow:inset 0 0 0 1px rgba(227,184,119,.55);vertical-align:-2px;margin-right:4px}
 .bk-slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:18px;max-width:520px}
@@ -432,6 +436,7 @@ footer .adm:hover,footer .adm:focus-visible{opacity:1;color:var(--gold-hi)}
   <div class="eyebrow rv">Agendamento</div>
   <h2 class="rv ln" style="--d:.08s"><span><span>Escolha dia e horário</span></span></h2>
   <p class="sub rv" style="--d:.18s" id="bk-sub"></p>
+  <p class="bk-aviso" id="bk-aviso" role="status" hidden></p>
   <div class="bk rv nf" id="bk" data-step="1" style="--d:.25s">
     <div class="bk-cal" id="bk-cal">
       <div class="bk-cap"><button type="button" class="bk-nav p" id="bk-prev" aria-label="Mês anterior"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button><span id="bk-month" aria-live="polite"></span><button type="button" class="bk-nav n" id="bk-next" aria-label="Próximo mês"><svg viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button></div>
@@ -558,8 +563,13 @@ size();heroWake();
 /* config.js = configuração única do site e do painel (banco, WhatsApp, agenda). Fica na mesma pasta. */
 const SEA=window.SEA_CONFIG||{};
 /* WhatsApp do studio com DDI+DDD, só números (ex.: 5579999999999) */
-const WA=String(SEA.WHATSAPP||'').replace(/\D/g,'');
-if(WA)document.getElementById('wa-foot').href='https://wa.me/'+WA;
+let WA=String(SEA.WHATSAPP||'').replace(/\D/g,'');
+const setWA=()=>{if(WA)document.getElementById('wa-foot').href='https://wa.me/'+WA};setWA();
+/* Configurações que a admin define no painel (admin.html → aba "Site"). Chegam pelo siteReady, mais abaixo. */
+const SITE={booking_on:true,aviso:'',prices:[]};
+const normNome=t=>String(t||'').toLowerCase().trim();
+const precoDe=n=>{const k=normNome(n),p=SITE.prices.find(x=>normNome(x.model)===k||(x.aliases||[]).some(a=>normNome(a)===k));return p&&p.price!=null?Number(p.price).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}):''};
+function pintaPrecos(root){(root||document).querySelectorAll('[data-pn]').forEach(e=>{const v=precoDe(e.dataset.pn);e.textContent=v?' · '+v:''})}
 /* Para trocar uma foto: substitua a regra .ph0 … .ph5 no bloco <style id="fotos-modelos"> */
 const models=[
 {n:'Clássico (Fio a Fio)',d:'Um fio sintético em cada cílio natural. Efeito natural e delicado.',k:'Natural',tec:'1 fio por cílio natural',para:'Primeira extensão e dia a dia',vol:1,c:22,f:1,len:26,sp:70,w:1.6,cat:0},
@@ -646,13 +656,14 @@ function make(vi){
         '<div class="cc-chips"><span class="cc-chip a"><span>Efeito '+m.k.toLowerCase()+'</span></span>'+
           '<span class="cc-neck" aria-hidden="true"><svg viewBox="0 -2 14 12" width="14" height="10" preserveAspectRatio="none"><path d="M0 -2 V0 C0 0 5.09091 0.49688 5.09091 4 C5.09091 7.50312 0 8 0 8 V10 H14 V8 C14 8 8.90909 7.50312 8.90909 4 C8.90909 0.49688 14 0 14 0 V-2 Z"/></svg></span>'+
           '<span class="cc-chip b"><span>'+m.tec+'</span></span></div>'+
-        '<a class="cc-go" href="#agendar" data-m="'+i+'">Agendar este modelo</a>'+
+        '<a class="cc-go" href="#agendar" data-m="'+i+'"><span class="cc-gl">Agendar<span class="cc-gx"> este modelo</span><span class="cc-val" data-pn="'+m.n+'"></span></span></a>'+
       '</div>'+
       '<div class="cc-pic"><i class="ph ph'+i+'" role="img" aria-label="Foto de referência do modelo '+m.n+'"></i>'+
         '<div class="cc-map">'+eye(m)+'<b>Desenho dos fios</b></div></div>'+
     '</div></div>'+
   '</div>';
   el.addEventListener('click',()=>{const o=+el.dataset.o;if(o&&!swiped)go(o,true)});
+  pintaPrecos(el);
   view.appendChild(el);
   return el;
 }
@@ -754,7 +765,7 @@ const agendaStore=(()=>{
       async list(de,ate){const o={};(await rpc('sea_get_agenda',{p_from:de,p_to:ate})).forEach(x=>{(o[x.d]=o[x.d]||[]).push(x.t)});return o},
       async save(b){
         try{await rpc('sea_create_booking',{p_name:b.nome,p_phone:b.whatsapp,p_style:b.modelo||'',p_date:b.data,p_time:b.hora})}
-        catch(e){throw new Error(/slot_taken|slot_blocked/.test(e.message)?'ocupado':e.message)}
+        catch(e){throw new Error(/slot_taken|slot_blocked/.test(e.message)?'ocupado':/invalid_time|invalid_date|booking_closed/.test(e.message)?'mudou':e.message)}
         return b;
       }
     };
@@ -770,7 +781,32 @@ const agendaStore=(()=>{
   };
 })();
 
-(function(){
+/* Rota painel → site: o que a admin salva na aba "Site" chega aqui pela função pública sea_get_site.
+   Se o banco não responder em 3,5 s, vale a última resposta guardada neste navegador e, sem ela, o config.js. */
+const siteReady=(async()=>{
+  if(!(SUPABASE_URL&&SUPABASE_ANON_KEY))return;
+  const KEY='sea_site';let s=null;
+  try{
+    const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),3500);
+    const r=await fetch(SUPABASE_URL.replace(/\/+$/,'')+'/rest/v1/rpc/sea_get_site',{method:'POST',headers:{apikey:SUPABASE_ANON_KEY,Authorization:'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json'},body:'{}',signal:ctl.signal});
+    clearTimeout(tm);
+    if(r.ok){s=await r.json();try{localStorage.setItem(KEY,JSON.stringify(s))}catch(e){}}
+  }catch(e){}
+  if(!s){try{s=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}}
+  if(!s||typeof s!=='object')return;
+  const a=s.agenda||{},hh=/^([01]\d|2[0-3]):[0-5]\d$/;
+  if(hh.test(a.abre))AGENDA.abre=a.abre;
+  if(hh.test(a.fecha))AGENDA.fecha=a.fecha;
+  if(+a.duracao>=10)AGENDA.duracao=Math.round(+a.duracao);
+  if(Array.isArray(a.dias)&&a.dias.length)AGENDA.dias=a.dias.map(Number).filter(d=>d>=0&&d<=6);
+  if(+a.janelaDias>=1)AGENDA.janelaDias=Math.round(+a.janelaDias);
+  const w=String(s.whatsapp||'').replace(/\D/g,'');if(w){WA=w;setWA()}
+  SITE.booking_on=s.booking_on!==false;SITE.aviso=String(s.aviso||'').trim();SITE.prices=Array.isArray(s.prices)?s.prices:[];
+  const av=document.getElementById('bk-aviso');if(av){av.textContent=SITE.aviso;av.hidden=!SITE.aviso}
+  pintaPrecos();if(window.pvWa)window.pvWa();
+})();
+
+siteReady.finally(function(){
 const bk=document.getElementById('bk'),grid=document.getElementById('bk-grid'),side=document.getElementById('bk-side');
 const monthEl=document.getElementById('bk-month'),prevB=document.getElementById('bk-prev'),nextB=document.getElementById('bk-next');
 const statL=document.getElementById('bk-stat-l'),statV=document.getElementById('bk-stat-v');
@@ -790,10 +826,10 @@ document.getElementById('bk-sub').textContent='Atendimento '+diasTxt+', das '+AG
 const today=day0(new Date()),maxDay=new Date(today);maxDay.setDate(maxDay.getDate()+AGENDA.janelaDias);
 let view=new Date(today.getFullYear(),today.getMonth(),1),sel=null,slot=null,taken={},mine={},modelo='',step=1,saved=null;
 
-const open=d=>d>=today&&d<=maxDay&&AGENDA.dias.includes(d.getDay());
+const open=d=>SITE.booking_on&&d>=today&&d<=maxDay&&AGENDA.dias.includes(d.getDay());
 function slotsOf(d){
   const k=key(d),t=taken[k]||[],now=new Date(),isToday=k===key(now),nowMin=now.getHours()*60+now.getMinutes();
-  return SLOTS.map(h=>({h,fim:fmt(toMin(h)+AGENDA.duracao),livre:!t.includes('*')&&!t.includes(h)&&!(isToday&&toMin(h)<=nowMin)}));
+  return SLOTS.map(h=>({h,fim:fmt(toMin(h)+AGENDA.duracao),livre:!t.includes('*')&&!t.some(x=>x!=='*'&&Math.abs(toMin(x)-toMin(h))<AGENDA.duracao)&&!(isToday&&toMin(h)<=nowMin)}));
 }
 const longDate=d=>d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
 
@@ -835,6 +871,11 @@ function goStep(n,focus){
   if(focus){side.focus({preventScroll:true});const r=side.getBoundingClientRect();if(r.top<8||r.top>innerHeight*.55)side.scrollIntoView({behavior:'smooth',block:r.height>innerHeight*.8?'start':'center'})}
 }
 function drawSide(){
+  if(!SITE.booking_on){
+    side.innerHTML='<h3>Agendamento online pausado</h3><p class="bk-hint">No momento os horários são combinados direto com o studio.</p>'+
+      (WA?'<div class="bk-act"><a class="bk-btn" target="_blank" rel="noopener" href="https://wa.me/'+WA+'?text='+encodeURIComponent('Olá! Quero agendar um horário no Studio Emilly Andrade.')+'">Agendar pelo WhatsApp</a></div>':'');
+    return;
+  }
   if(step===3)return drawDone();
   if(step===2)return drawForm();
   if(!sel){
@@ -851,7 +892,7 @@ function drawForm(){
   side.innerHTML='<h3>Seus dados</h3>'+resumo()+
     '<label class="bk-f"><span>Nome completo</span><input id="bk-nome" type="text" autocomplete="name" maxlength="80" aria-describedby="bk-e1"><span class="bk-err" id="bk-e1" role="alert"></span></label>'+
     '<label class="bk-f"><span>WhatsApp com DDD</span><input id="bk-tel" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="(79) 99999-9999" aria-describedby="bk-e2"><span class="bk-err" id="bk-e2" role="alert"></span></label>'+
-    '<label class="bk-f"><span>Modelo</span><select id="bk-mod"><option value="">Decidir no studio</option>'+models.map(m=>'<option'+(m.n===modelo?' selected':'')+'>'+m.n+'</option>').join('')+(modelo&&!models.some(m=>m.n===modelo)?'<option selected>'+esc(modelo)+'</option>':'')+'</select></label>'+
+    '<label class="bk-f"><span>Modelo</span><select id="bk-mod"><option value="">Decidir no studio</option>'+models.map(m=>{const v=precoDe(m.n);return '<option value="'+m.n+'"'+(m.n===modelo?' selected':'')+'>'+m.n+(v?' · '+v:'')+'</option>'}).join('')+(modelo&&!models.some(m=>m.n===modelo)?'<option selected>'+esc(modelo)+'</option>':'')+'</select></label>'+
     '<div class="bk-act"><button type="button" class="bk-btn" id="bk-save">Registrar agendamento</button></div><span class="bk-err" id="bk-e3" role="alert"></span>';
   const f=saved||{};
   if(f.nome)side.querySelector('#bk-nome').value=f.nome;
@@ -877,7 +918,7 @@ async function submit(){
   }catch(err){
     if(err&&err.message==='ocupado'){saved={nome,tel:tI.value};slot=null;await load();goStep(1,true);
       side.querySelector('.bk-hint').textContent='Esse horário acabou de ser ocupado. Escolha outro para continuar.'}
-    else{btn.disabled=false;btn.textContent='Registrar agendamento';e3.textContent='Não foi possível registrar agora. Verifique a conexão e tente de novo.'}
+    else{btn.disabled=false;btn.textContent='Registrar agendamento';e3.textContent=err&&err.message==='mudou'?'A agenda do studio foi atualizada agora há pouco. Recarregue a página e escolha outro horário.':'Não foi possível registrar agora. Verifique a conexão e tente de novo.'}
   }
 }
 function drawDone(){
@@ -912,7 +953,7 @@ side.addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.target.id==='bk-nome'
 /* chamado pelos botões "Agendar este modelo": índice do catálogo ou nome do modelo vindo do provador */
 window.bkModelo=i=>{modelo=typeof i==='string'?i:(models[i]?models[i].n:'');const m=side.querySelector('#bk-mod');if(m){if(modelo&&![...m.options].some(o=>o.value===modelo))m.add(new Option(modelo));m.value=modelo}};
 drawSide();load();
-})();
+});
 
 /* ---------- Revelação ao rolar ---------- */
 function show(e){e.classList.add('in')}
@@ -965,7 +1006,7 @@ function setModel(k){
   if(typeof WA==='string'&&WA){const wa=$('wa');wa.hidden=false;wa.href='https://wa.me/'+WA+'?text='+encodeURIComponent('Olá, '+BRAND+'! Testei o '+s.nome+' no provador e quero agendar.')}
 }
 function step(n){const ks=Object.keys(STYLES);setModel(ks[(ks.indexOf(cur)+n+ks.length)%ks.length])}
-setModel(cur);
+setModel(cur);window.pvWa=()=>setModel(cur);
 $('prev').onclick=()=>step(-1);$('next').onclick=()=>step(1);
 /* leva o modelo provado para o formulário da agenda */
 $('book').addEventListener('click',()=>{if(window.bkModelo)window.bkModelo(STYLES[cur].ag||STYLES[cur].nome)});
