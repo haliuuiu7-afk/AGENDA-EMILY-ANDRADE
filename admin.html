@@ -468,7 +468,10 @@ const SITE_DEF = {whatsapp:"",booking_on:true,aviso:"",show_prices:true};
 let AGENDA = Object.assign({}, AGENDA_DEF, CFG.AGENDA || {});
 let SITE = Object.assign({}, SITE_DEF, {whatsapp:String(CFG.WHATSAPP||"").replace(/\D/g,"")});
 /* Modelos que o site oferece (catálogo + provador): aparecem na tabela de preços esperando o valor */
-const SITE_MODELS = ["Cílios Efeito Rímel","Cílios 5D ou Inglês","Cílios Power","Manutenção (até 20 dias)"];
+const SITE_MODELS = ["Cílios Efeito Rímel","Cílios 5D ou Inglês","Cílios Power","Cílios Brasileiro","Cílios Fox Eyes","Manutenção (até 20 dias)"];
+/* Valor inicial de cada modelo do site. Entra sozinho na tabela de preços na primeira vez que o painel abre depois
+   de o modelo ser criado; daí em diante vale o que for editado (ou apagado) na aba "Modelos & preços". */
+const PRECO_PADRAO = {"Cílios Efeito Rímel":120,"Cílios 5D ou Inglês":120,"Cílios Power":120,"Cílios Brasileiro":120,"Cílios Fox Eyes":120,"Manutenção (até 20 dias)":80};
 /* Rotas do painel: admin.html#agenda abre direto na aba Agenda, e assim por diante */
 const ROUTES = {overview:"visao",orders:"pedidos",agenda:"agenda",clients:"clientes",daily:"vendas",models:"modelos",site:"site"};
 const WA_ICON = '<svg viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.71.45 3.38 1.3 4.85L2 22l5.38-1.41a9.9 9.9 0 0 0 4.66 1.18c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.8 14.14c-.24.68-1.4 1.3-1.93 1.35-.5.05-.97.23-3.27-.68-2.77-1.09-4.52-3.94-4.66-4.12-.13-.18-1.11-1.48-1.11-2.82 0-1.34.7-2 .95-2.28.25-.27.54-.34.72-.34h.52c.17 0 .39-.06.61.47.24.56.8 1.94.87 2.08.07.14.12.3.02.48-.09.18-.14.3-.27.46l-.41.48c-.14.14-.28.29-.12.56.16.27.71 1.17 1.52 1.9 1.05.93 1.93 1.22 2.2 1.36.27.14.43.12.59-.07.16-.18.68-.8.86-1.07.18-.27.36-.23.61-.14.25.09 1.59.75 1.86.89.27.14.45.2.52.32.07.11.07.66-.17 1.33z"/></svg>';
@@ -546,7 +549,26 @@ async function boot(){
     $("loginErr").textContent=error?"O banco ainda não foi preparado: rode o arquivo aplicar-no-supabase.sql no Supabase.":"Este usuário não tem acesso de administrador.";return}
   $("login").hidden=true;$("app").hidden=false;
   await Promise.all([loadBookings(),loadPrices(),loadBlocks(),loadSettings()]);
+  await seedPrices();
   fillFilters();renderAll();fillSite();subscribe();route();checkRoutes();
+}
+/* Modelo novo do site ganha o valor padrão na tabela de preços, uma única vez (fica anotado nas configurações). */
+async function seedPrices(){
+  if(!SET_OK)return;
+  const feitos=Array.isArray(SITE.precos_iniciais)?SITE.precos_iniciais:[];
+  const novos=SITE_MODELS.filter(m=>PRECO_PADRAO[m]!=null&&!feitos.includes(m));
+  if(!novos.length)return;
+  const faltam=novos.filter(m=>!findPrice(m));
+  if(faltam.length){
+    const{error}=await sb.from("sea_lash_prices").upsert(faltam.map(m=>({model:m,price:PRECO_PADRAO[m]})),{onConflict:"model",ignoreDuplicates:true});
+    if(error)return;
+    await loadPrices();
+  }
+  const{data,error}=await sb.from("sea_settings").select("data").eq("id",1).maybeSingle();
+  if(error)return;
+  const d=Object.assign({},data?.data||{},{precos_iniciais:feitos.concat(novos)});
+  const r=await sb.from("sea_settings").upsert({id:1,data:d,updated_at:new Date().toISOString()});
+  if(!r.error){SITE.precos_iniciais=d.precos_iniciais;if(faltam.length)toast(`${faltam.map(esc).join(" e ")}: valor inicial incluído na tabela de preços ✓`)}
 }
 
 /* ============ DADOS ============ */
@@ -761,9 +783,11 @@ async function applyMissing(){
 /* ============ SITE: configurações que o index.html lê (tabela sea_settings) ============ */
 const DOW=["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 const localWa=p=>digits(p).replace(/^55(?=\d{10,11}$)/,"");
+let SET_OK=false;
 async function loadSettings(){
   const{data,error}=await sb.from("sea_settings").select("data").eq("id",1).maybeSingle();
   if(error){toast("Configurações do site: rode o arquivo <b>aplicar-no-supabase.sql</b> no Supabase. ("+esc(error.message)+")");return}
+  SET_OK=true;
   const d=data?.data||{};
   SITE=Object.assign({},SITE_DEF,{whatsapp:SITE.whatsapp},Object.fromEntries(Object.entries(d).filter(([k,v])=>k!=="agenda"&&!(k==="whatsapp"&&!v))));
   AGENDA=Object.assign({},AGENDA_DEF,CFG.AGENDA||{},d.agenda&&typeof d.agenda==="object"?d.agenda:{});
@@ -810,10 +834,10 @@ $("stSave").onclick=async()=>{
   const fora=ALL.filter(b=>isSale(b)&&b.booking_date>=hoje&&(!grade.includes(time5(b.booking_time))||!v.agenda.dias.includes(new Date(b.booking_date+"T00:00").getDay()))).length;
   if(fora&&!confirm(`${fora} agendamento(s) futuro(s) ficam fora dos novos horários.\nEles NÃO são cancelados e continuam na sua agenda — só não seguem mais a grade do site.\n\nPublicar mesmo assim?`))return;
   const btn=$("stSave");btn.disabled=true;btn.textContent="Publicando…";
-  const{error}=await sb.from("sea_settings").upsert({id:1,data:v,updated_at:new Date().toISOString()});
+  const{error}=await sb.from("sea_settings").upsert({id:1,data:Object.assign({},v,SITE.precos_iniciais?{precos_iniciais:SITE.precos_iniciais}:{}),updated_at:new Date().toISOString()});
   btn.disabled=false;btn.textContent="Salvar e publicar no site";
   if(error)return toast("Não publicou: "+esc(error.code==="42P01"||error.code==="PGRST205"?"rode o arquivo aplicar-no-supabase.sql no Supabase.":error.message));
-  SITE={whatsapp:v.whatsapp,booking_on:v.booking_on,aviso:v.aviso,show_prices:v.show_prices};AGENDA=Object.assign({},AGENDA_DEF,v.agenda);
+  SITE={whatsapp:v.whatsapp,booking_on:v.booking_on,aviso:v.aviso,show_prices:v.show_prices,precos_iniciais:SITE.precos_iniciais};AGENDA=Object.assign({},AGENDA_DEF,v.agenda);
   calcAgenda();renderAll();fillSite();checkRoutes(true);
   toast(`✓ <b>Publicado no site</b><br>${v.booking_on?"Agenda aberta":"Agendamento online pausado"} · ${grade.length} horário(s)/dia${v.show_prices?" · preços visíveis":""}`);
 };
