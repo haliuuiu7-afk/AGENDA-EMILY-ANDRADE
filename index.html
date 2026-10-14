@@ -268,6 +268,19 @@ footer .tel[hidden]{display:none}
 .bk-f input::placeholder{color:#7d7468}
 .bk-f select option{background:#14110e;color:#f3ece2}
 .bk-err{display:block;margin-top:6px;font-size:13px;color:#ff9c8c;min-height:0}
+.bk-hq{margin:22px 0 0;padding:16px 14px 6px;border:1px solid rgba(227,184,119,.3);border-radius:14px;min-width:0}
+.bk-hq legend{padding:0 8px;font-family:'Cormorant Garamond',Georgia,serif;font-size:21px;font-weight:600;color:var(--gold-hi)}
+.bk-hq-s{margin:0 0 6px;font-size:13px;line-height:1.45;color:var(--muted);font-weight:300}
+.bk-hq-r{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid rgba(227,184,119,.12);font-size:15px}
+.bk-hq-r:first-of-type{border-top:0}
+.bk-hq-r.bad .bk-hq-q{color:#ff9c8c}
+.bk-hq-o{display:flex;gap:8px;flex:none}
+.bk-hq-o label{position:relative;cursor:pointer}
+.bk-hq-o input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.bk-hq-o span{display:inline-flex;align-items:center;justify-content:center;min-width:56px;height:38px;padding:0 12px;border:1px solid rgba(227,184,119,.3);border-radius:10px;background:var(--field);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);transition:background .15s,color .15s,border-color .15s}
+.bk-hq-o input:checked+span{background:var(--btn);border-color:var(--gold-hi);color:var(--on-gold);font-weight:500}
+.bk-hq-o input:focus-visible+span{outline:2px solid var(--gold);outline-offset:2px}
+.bk-hq-note{margin:4px 0 12px;padding:10px 12px;border-radius:10px;background:rgba(227,184,119,.08);color:var(--gold-hi);font-size:13.5px;line-height:1.45}
 .bk-ok{width:52px;height:52px;margin-bottom:14px;display:grid;place-items:center;border-radius:50%;background:var(--tint);color:var(--gold-hi);box-shadow:inset 0 0 0 1px rgba(227,184,119,.4)}
 .bk-ok svg{width:26px;height:26px;stroke-width:2.6}
 .bk-dl{margin:16px 0 0;border-top:1px solid var(--line)}
@@ -866,7 +879,11 @@ const diasTxt=(()=>{const d=AGENDA.dias.slice().sort();const seq=d.every((v,i)=>
 document.getElementById('bk-sub').textContent='Atendimento '+diasTxt+', das '+AGENDA.abre+' às '+AGENDA.fecha+'. Cada serviço leva '+durTxt+'.';
 
 const today=day0(new Date()),maxDay=new Date(today);maxDay.setDate(maxDay.getDate()+AGENDA.janelaDias);
-let view=new Date(today.getFullYear(),today.getMonth(),1),sel=null,slot=null,taken={},mine={},modelo='',step=1,saved=null;
+let view=new Date(today.getFullYear(),today.getMonth(),1),sel=null,slot=null,taken={},mine={},modelo='',step=1,saved=null,health={};
+/* Ficha "Fale sobre sua Saúde": o relatório vai junto da confirmação enviada ao studio */
+const HQ=['Usa lentes de contato?','Lactante?','Alergia?','Gestante?','Quimioterapia?','Terçol?','Blefarite?','Conjuntivite?'];
+const hqRows=()=>HQ.map((q,i)=>'<div class="bk-hq-r" data-i="'+i+'"><span class="bk-hq-q">'+q+'</span><span class="bk-hq-o" role="radiogroup" aria-label="'+q+'"><label><input type="radio" name="hq'+i+'" value="sim"'+(health[i]==='sim'?' checked':'')+'><span>Sim</span></label><label><input type="radio" name="hq'+i+'" value="nao"'+(health[i]==='nao'?' checked':'')+'><span>Não</span></label></span></div>').join('');
+const hqText=()=>'*Ficha de saúde*\n'+HQ.map((q,i)=>'• '+q.replace('?','')+': '+(health[i]==='sim'?'SIM':'Não')).join('\n');
 
 const open=d=>SITE.booking_on&&d>=today&&d<=maxDay&&AGENDA.dias.includes(d.getDay());
 function slotsOf(d){
@@ -935,10 +952,12 @@ function drawForm(){
     '<label class="bk-f"><span>Nome completo</span><input id="bk-nome" type="text" autocomplete="name" maxlength="80" aria-describedby="bk-e1"><span class="bk-err" id="bk-e1" role="alert"></span></label>'+
     '<label class="bk-f"><span>WhatsApp com DDD</span><input id="bk-tel" type="tel" inputmode="numeric" autocomplete="tel-national" placeholder="(79) 99999-9999" aria-describedby="bk-e2"><span class="bk-err" id="bk-e2" role="alert"></span></label>'+
     '<label class="bk-f"><span>Modelo</span><select id="bk-mod"><option value="">Decidir no studio</option>'+SERV.map(n=>{const v=precoDe(n);return '<option value="'+n+'"'+(n===modelo?' selected':'')+'>'+n+(v?' · '+v:'')+'</option>'}).join('')+(modelo&&!SERV.includes(modelo)?'<option selected>'+esc(modelo)+'</option>':'')+'</select><span class="bk-fh">Manutenção vale até '+MANUT.dias+' dias depois da aplicação. Após esse prazo, o valor é o de aplicação.</span></label>'+
+    '<fieldset class="bk-hq" id="bk-hq"><legend>Fale sobre sua Saúde</legend><p class="bk-hq-s">Responda todas as perguntas antes de finalizar. Essas informações vão junto do seu agendamento.</p>'+hqRows()+'<div class="bk-hq-note" id="bk-hq-lens" hidden>Como você usa lentes de contato, lembre-se de retirá-las no dia da aplicação.</div><span class="bk-err" id="bk-e4" role="alert"></span></fieldset>'+
     '<div class="bk-act"><button type="button" class="bk-btn" id="bk-save">Registrar agendamento</button></div><span class="bk-err" id="bk-e3" role="alert"></span>';
   const f=saved||{};
   if(f.nome)side.querySelector('#bk-nome').value=f.nome;
   if(f.tel)side.querySelector('#bk-tel').value=f.tel;
+  const L=side.querySelector('#bk-hq-lens');if(L)L.hidden=health[0]!=='sim';
 }
 function telDigits(v){let d=v.replace(/\D/g,'');if(d.length>11&&d.startsWith('55'))d=d.slice(2);return d.slice(0,11)}
 function telMask(v){const d=telDigits(v);if(d.length<3)return d.length?'('+d:'';if(d.length<7)return '('+d.slice(0,2)+') '+d.slice(2);const c=d.length===11?7:6;return '('+d.slice(0,2)+') '+d.slice(2,c)+'-'+d.slice(c)}
@@ -948,14 +967,18 @@ async function submit(){
   const okN=nome.length>=3,okT=(d.length===10||d.length===11)&&d[0]!=='0';
   e1.textContent=okN?'':'Digite seu nome para identificarmos o agendamento.';nI.setAttribute('aria-invalid',!okN);
   e2.textContent=okT?'':'Digite o WhatsApp com DDD, por exemplo (79) 99999-9999.';tI.setAttribute('aria-invalid',!okT);
+  const miss=HQ.map((q,i)=>i).filter(i=>!health[i]),e4=side.querySelector('#bk-e4');
+  side.querySelectorAll('.bk-hq-r').forEach(r=>r.classList.toggle('bad',miss.includes(+r.dataset.i)));
   if(!okN){nI.focus();return}
   if(!okT){tI.focus();return}
+  e4.textContent=miss.length?'Responda Sim ou Não em todas as perguntas da ficha de saúde.':'';
+  if(miss.length){side.querySelector('.bk-hq-r.bad input').focus();return}
   modelo=side.querySelector('#bk-mod').value;
   btn.disabled=true;btn.textContent='Registrando…';
   const rec={nome,whatsapp:'55'+d,modelo,data:key(sel),hora:slot,criado:new Date().toISOString()};
   try{
     await agendaStore.save(rec);
-    saved={nome,tel:telMask(d),modelo,dia:longDate(sel),hora:slot};mine[rec.data]=1;
+    saved={nome,tel:telMask(d),modelo,dia:longDate(sel),hora:slot,saude:hqText(),lentes:health[0]==='sim'};mine[rec.data]=1;
     await load();goStep(3,true);
   }catch(err){
     if(err&&err.message==='ocupado'){saved={nome,tel:tI.value};slot=null;await load();goStep(1,true);
@@ -964,9 +987,9 @@ async function submit(){
   }
 }
 function drawDone(){
-  const f=saved,msg='Olá! Fiz um agendamento pelo site.\nNome: '+f.nome+'\nDia: '+f.dia+'\nHorário: '+f.hora+(f.modelo?'\nModelo: '+f.modelo:'')+'\nMeu WhatsApp: '+f.tel;
+  const f=saved,msg='Olá! Fiz um agendamento pelo site.\nNome: '+f.nome+'\nDia: '+f.dia+'\nHorário: '+f.hora+(f.modelo?'\nModelo: '+f.modelo:'')+'\nMeu WhatsApp: '+f.tel+'\n\n'+f.saude;
   side.innerHTML='<div class="bk-ok">'+CHECK+'</div><h3>Agendamento registrado</h3>'+
-    '<p class="bk-hint">Envie a confirmação para o studio pelo WhatsApp para garantir o seu horário.</p>'+
+    '<p class="bk-hint">Envie a confirmação para o studio pelo WhatsApp para garantir o seu horário. Sua ficha de saúde vai junto na mensagem.</p>'+(f.lentes?'<p class="bk-hq-note">Como você usa lentes de contato, lembre-se de retirá-las no dia da aplicação.</p>':'')+
     '<dl class="bk-dl"><div><dt>Nome</dt><dd>'+esc(f.nome)+'</dd></div><div><dt>Dia</dt><dd>'+f.dia+'</dd></div><div><dt>Horário</dt><dd>'+f.hora+'</dd></div><div><dt>Modelo</dt><dd>'+esc(f.modelo||'Decidir no studio')+'</dd></div></dl>'+
     '<div class="bk-act"><a class="bk-btn" target="_blank" rel="noopener" href="https://wa.me/'+WA+'?text='+encodeURIComponent(msg)+'">Enviar confirmação no WhatsApp</a><button type="button" class="bk-link" id="bk-new">Fazer outro agendamento</button></div>';
 }
@@ -985,7 +1008,12 @@ side.addEventListener('click',e=>{
   if(e.target.closest('#bk-go')&&slot)return goStep(2,true),side.querySelector('#bk-nome').focus({preventScroll:true});
   if(e.target.closest('#bk-back')){saved={nome:side.querySelector('#bk-nome').value,tel:side.querySelector('#bk-tel').value};modelo=side.querySelector('#bk-mod').value;return goStep(1,true)}
   if(e.target.closest('#bk-save'))return submit();
-  if(e.target.closest('#bk-new')){sel=null;slot=null;saved=null;drawMonth();return goStep(1,true)}
+  if(e.target.closest('#bk-new')){sel=null;slot=null;saved=null;health={};drawMonth();return goStep(1,true)}
+});
+side.addEventListener('change',e=>{
+  const m=/^hq(\d+)$/.exec(e.target.name||'');if(!m)return;
+  health[m[1]]=e.target.value;const r=e.target.closest('.bk-hq-r');if(r)r.classList.remove('bad');
+  const L=side.querySelector('#bk-hq-lens');if(L)L.hidden=health[0]!=='sim';
 });
 side.addEventListener('input',e=>{
   if(e.target.id==='bk-tel'){const el=e.target,atEnd=el.selectionStart===el.value.length;el.value=telMask(el.value);if(atEnd)el.setSelectionRange(el.value.length,el.value.length)}
