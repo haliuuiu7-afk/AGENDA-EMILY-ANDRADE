@@ -421,7 +421,7 @@ textarea.inp{width:100%;resize:vertical;min-height:150px;line-height:1.5}
     <h3>Avisar cliente</h3>
     <div class="who" id="nfWho"></div>
     <div class="chips" id="nfChips">
-      <button data-tpl="blank">Em branco</button><button data-tpl="imprevisto">Imprevisto / remarcar</button><button data-tpl="atraso">Atraso</button><button data-tpl="lembrete">Lembrete</button>
+      <button data-tpl="confirmacao">Confirmar agendamento</button><button data-tpl="blank">Em branco</button><button data-tpl="imprevisto">Imprevisto / remarcar</button><button data-tpl="atraso">Atraso</button><button data-tpl="lembrete">Lembrete</button>
     </div>
     <textarea class="inp" id="nfText" placeholder="Digite sua mensagem…"></textarea>
     <div class="hint">Abre a conversa no WhatsApp com o número da cliente e a mensagem pronta — é só tocar em enviar.</div>
@@ -1087,7 +1087,9 @@ function tplText(id){
   const f=String(NF.name||"").trim().split(" ")[0]||"",b=NF.booking;
   const when=b?`${fmtDay(b.booking_date)} às ${time5(b.booking_time)}`:"";
   const hi=`Olá, ${f}! Aqui é do ${BRAND} ✨\n\n`;
+  const dia=b?fmtDay(b.booking_date):"[inserir data]",hora=b?time5(b.booking_time):"[inserir horário]";
   return{
+    confirmacao:`✨ Confirmação de Agendamento | Emilly Andrade Lash Designer ✨\n\nOlá, linda! 💖 Tudo bem?\n\nPassando para confirmar seu agendamento de extensão de cílios. 🥰\n\n📅 Data: ${dia}\n⏰ Horário: ${hora}\n\nPeço, por gentileza, que confirme sua presença respondendo a esta mensagem. 🤍\n\n⚠️ Orientação importante: Caso utilize lentes de contato, lembre-se de retirá-las no dia da aplicação para garantir mais conforto e segurança durante o procedimento.\n\nEstou preparando tudo com muito carinho para te receber e realçar ainda mais a sua beleza! ✨\n\nAguardo sua confirmação! 💕`,
     blank:hi,
     imprevisto:hi+`Infelizmente tive um imprevisto e preciso remarcar seu atendimento${when?` de ${when}`:""}. Sinto muito pelo transtorno! Podemos combinar um novo dia e horário? Me diga qual fica melhor para você.`,
     atraso:hi+`Estou com um pequeno atraso e ${when?`seu atendimento de ${when}`:"o seu atendimento"} vai começar um pouquinho mais tarde. Peço desculpas e agradeço a compreensão!`,
@@ -1098,13 +1100,13 @@ function openNotify(c){
   NF={name:c.name,phone:c.phone,booking:c.booking||(c.key?nextBooking(c.key):null)};
   const b=NF.booking;
   $("nfWho").innerHTML=`<b style="color:var(--ink);font-weight:500">${esc(c.name)}</b> · ${esc(fmtPhone(c.phone))}${b?`<br>Próximo horário: ${fmtDayW(b.booking_date)} às ${time5(b.booking_time)} · ${esc(b.style)}`:""}`;
-  $("nfText").value=tplText("blank");$("nfErr").textContent="";
+  NF.cur=b?"confirmacao":"blank";$("nfText").value=tplText(NF.cur);$("nfErr").textContent="";
   $("nfModal").hidden=false;setTimeout(()=>{const t=$("nfText");t.focus();t.setSelectionRange(t.value.length,t.value.length)},50);
 }
 const closeNotify=()=>{$("nfModal").hidden=true;NF=null};
 $("nfChips").addEventListener("click",e=>{const b=e.target.closest("[data-tpl]");if(!b||!NF)return;
-  if($("nfText").value.trim()&&$("nfText").value!==tplText("blank")&&!confirm("Substituir o texto atual pelo modelo?"))return;
-  $("nfText").value=tplText(b.dataset.tpl)});
+  if($("nfText").value.trim()&&$("nfText").value!==tplText(NF.cur)&&!confirm("Substituir o texto atual pelo modelo?"))return;
+  NF.cur=b.dataset.tpl;$("nfText").value=tplText(NF.cur)});
 $("nfCancel").onclick=closeNotify;
 $("nfModal").addEventListener("click",e=>{if(e.target.id==="nfModal")closeNotify()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("nfModal").hidden)closeNotify()});
